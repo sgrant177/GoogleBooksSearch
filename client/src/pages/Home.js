@@ -1,95 +1,93 @@
 import React, { Component } from "react";
-import Jumbotron from "../components/Jumbotron";
-import Card from "../components/Card";
-import Form from "../components/Form";
-import Book from "../components/Book";
-import Footer from "../components/Footer";
+import { Container } from "../components/Grid/Grid";
+import Nav from "../components/Nav/Nav";
+import Jumbotron from "../components/Jumbotron/Jumbotron";
+import {Input, SubmitBtn} from "../components/Search/Search";
 import API from "../utils/API";
-import { Col, Row, Container } from "../components/Grid";
-import { List } from "../components/List";
+import ResultList from "../components/ResultList/ResultList";
 
 class Home extends Component {
-  //initalize state with a books array, "q", and message
 
-  handleInputChange = event => {
-    const { name, value } = event.target;
-    this.setState({
-      [name]: value
-    });
-  };
+    state = {
+        books: [],
+        search: ""
+    };
 
-  getBooks = () => {
-    // call the api.getBooks() and set it to state.
-  };
 
-  handleFormSubmit = event => {
-    event.preventDefault();
-    this.getBooks();
-  };
+    // Create function to search for books through Google API
+    searchBooks = () => {
+        API.googleBooks(this.state.search)
+            .then(res => {
+                console.log("This is res.data", res.data.items)
+                this.setState({
+                books: res.data.items,
+                search: ""
+            })})
+            .catch(err => console.log(err));
+            
+    };
 
-  handleBookSave = id => {
-    const book = this.state.books.find(book => book.id === id);
+    // Create function to handle input data
+    handleInputChange = event => {
+        const {name, value} = event.target;
+        this.setState({
+            [name]: value
+        });
+    };
 
-    API.saveBook({
-      googleId: book.id,
-      title: book.volumeInfo.title,
-      // use the googleController.js methods to save the data
-    }).then(() => this.getBooks());
-  };
+    // Create function to handle form data submission
+    handleFormSubmit = event => {
+        event.preventDefault();
+        this.searchBooks();
+    };
 
-  render() {
-    return (
-      <Container>
-        <Row>
-          <Col size="md-12">
-            <Jumbotron>
-              <h1 className="text-center">
-                <strong>(React) Google Books Search</strong>
-              </h1>
-              <h2 className="text-center">Search for and Save Books of Interest.</h2>
-            </Jumbotron>
-          </Col>
-          <Col size="md-12">
-            <Card title="Book Search" icon="far fa-book">
-              <Form
-                handleInputChange={this.handleInputChange}
-                handleFormSubmit={this.handleFormSubmit}
-                q={this.state.q}
-              />
-            </Card>
-          </Col>
-        </Row>
-        <Row>
-          <Col size="md-12">
-            <Card title="Results">
-              {this.state.books.length ? (
-                <List>
-                  {this.state.books.map(book => (
-                    <Book
-                      key={book.id}
-                      title={book.volumeInfo.title}
-                      // pass the rest of the book object as a prop
-                      Button={() => (
-                        <button
-                          onClick={() => this.handleBookSave(book.id)}
-                          className="btn btn-primary ml-2"
-                        >
-                          Save
-                        </button>
-                      )}
+    saveGoogleBook = currentBook => {
+        console.log("This is the current book", currentBook);
+        API.saveBook({
+            id: currentBook.id,
+            title: currentBook.title,
+            authors: currentBook.authors,
+            description: currentBook.description,
+            image: currentBook.image,
+            link: currentBook.link
+        })
+        .then(res => console.log("Successful POST to DB!", res))
+        .catch(err => console.log("this is the error", err));
+    }
+
+    render() {
+        return (
+            <div>
+                <Nav />
+                <Container fluid>
+                <Jumbotron />
+                <form>
+                    <h5>Search for books</h5>
+                    <Input 
+                        value={this.state.search}
+                        onChange={this.handleInputChange}
+                        name="search"
+                        placeholder="e.g. Harry Potter"
                     />
-                  ))}
-                </List>
-              ) : (
-                <h2 className="text-center">{this.state.message}</h2>
-              )}
-            </Card>
-          </Col>
-        </Row>
-        <Footer />
-      </Container>
-    );
-  }
+                    <SubmitBtn onClick={this.handleFormSubmit}/>
+                </form>
+                
+                {this.state.books.length ? (
+                    <ResultList 
+                    bookState={this.state.books}
+                    saveGoogleBook={this.saveGoogleBook}>
+                    </ResultList>
+                ) : (
+                    <div>
+                        <hr/>
+                    <p style={{fontStyle: "italic"}}>No results to display</p>
+                    </div>
+                )}
+                
+                </Container>
+            </div>
+        )
+    }
 }
 
-export default Home;
+export default Home
